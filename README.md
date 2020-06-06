@@ -13,10 +13,10 @@ For reference, here is what I changed to get this source code to build in VS 201
 2. Retargeted to Windows 10 and C++ v142 build tools
 3. Downloaded v142 build tools (C++ MFC) via Visual Studio Installer
 4. Defined WINDOWS_IGNORE_PACKING_MISMATCH
-  a. Open RedAlert Property Pages -> C/C++ -> Preprocessor -> Add to Preprocessor Definitions
-  b. Use semicolon to separate definitions
-  c. Double check that it gets added to TiberianDawn Property Pages too.
-  d. This is an important step. An alterative (and apparently incorrect) way is to set the struct alignment to "default" however this could crash the game as the struct alignment/packing should be preserved.
+    * Open RedAlert Property Pages -> C/C++ -> Preprocessor -> Add to Preprocessor Definitions
+    * Use semicolon to separate definitions
+    * Double check that it gets added to TiberianDawn Property Pages too.
+    * This is an important step. An alterative (and apparently incorrect) way is to set the struct alignment to "default" however this could crash the game as the struct alignment/packing should be preserved.
 5. Build
 
 ## Artifacts
