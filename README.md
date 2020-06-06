@@ -29,7 +29,7 @@ To create a mod that includes either of the artifacts follow these steps:
 }
 `
 
-3. Create a directory inside your mod directory called Data.
+3. Create a new directory alongside ccmod.json inside your mod directory called Data.
 4. Put either the RedAlert.dll or the TiberianDawn.dll in this new Data directory.
 
 ## Loading the mod
