@@ -6,7 +6,9 @@ This code is the game logic for Command and Conquer: Tiberian Dawn, and Command 
 
 This source has been updated to be built in Visual Studio 2019. Simply load the project (CnCRemastered.sln) in VS 2019 and build.
 
-Here is what I changed to get this source code to build in VS 2019:
+*Note: The below changes have already been commited to this repo.*
+
+For reference, here is what I changed to get this source code to build in VS 2019:
 1. Loaded .sln into VS
 2. Retargeted to Windows 10 and C++ v142 build tools
 3. Downloaded v142 build tools (C++ MFC) via Visual Studio Installer
