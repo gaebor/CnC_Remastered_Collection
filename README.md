@@ -25,7 +25,7 @@ The artifacts (what you get after building) of this source are RedAlert.dll and 
 
 ## Creating a mod
 
-To create a mod that includes either of the artifacts follow these steps:
+To create a mod that includes either of the artifacts follow these steps (after you have made your changes to the source code):
 
 1. Create a directory with the name you want for your mod. This directory should go in ~/Documents/CnCRemastered/Mods. If this is a Red Alert mod then put it in  ~/Documents/CnCRemastered/Mods/Red_Alert
 2. Inside your new mod directory, create a json file called ccmod.json. Below is an example for a mod named "Test".
