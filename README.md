@@ -23,11 +23,11 @@ For reference, here is what I changed to get this source code to build in VS 201
 
 The artifacts (what you get after building) of this source are RedAlert.dll and TiberianDawn.dll.
 
-## Creating a mod
+## Creating a Red Alert mod
 
-To create a mod that includes either of the artifacts follow these steps (after you have made your changes to the source code):
+To create a RA mod that includes RedAlert.dll:
 
-1. Create a directory with the name you want for your mod. This directory should go in ~/Documents/CnCRemastered/Mods. If this is a Red Alert mod then put it in  ~/Documents/CnCRemastered/Mods/Red_Alert
+1. Create a directory with the name you want for your mod. This directory should go in  ~/Documents/CnCRemastered/Mods/Red_Alert
 2. Inside your new mod directory, create a json file called ccmod.json. Below is an example for a mod named "Test".
 
 `
@@ -43,7 +43,30 @@ To create a mod that includes either of the artifacts follow these steps (after 
 `
 
 3. Create a new directory alongside ccmod.json inside your mod directory called Data.
-4. Put either the RedAlert.dll or the TiberianDawn.dll in this new Data directory.
+4. Put RedAlert.dll in this new Data directory.
+
+
+## Creating a Tiberian Dawn mod
+
+To create a TD mod that includes TiberianDawn.dll:
+
+1. Create a directory with the name you want for your mod. This directory should go ~/Documents/CnCRemastered/Mods/Tiberian_Dawn
+2. Inside your new mod directory, create a json file called ccmod.json. Below is an example for a mod named "Test".
+
+`
+{
+  "name": "Test",
+  "description": "Just a test",
+  "author": "alexlk42",
+  "load_order": 1,
+  "version_low": 2,
+  "version_high": 1,
+  "game_type": "TD"
+}
+`
+
+3. Create a new directory alongside ccmod.json inside your mod directory called Data.
+4. Put TiberianDawn.dll in this new Data directory.
 
 ## Loading the mod
 
