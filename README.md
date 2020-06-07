@@ -50,7 +50,7 @@ To create a RA mod that includes RedAlert.dll:
 
 To create a TD mod that includes TiberianDawn.dll:
 
-1. Create a directory with the name you want for your mod. This directory should go ~/Documents/CnCRemastered/Mods/Tiberian_Dawn
+1. Create a directory with the name you want for your mod. This directory should go in ~/Documents/CnCRemastered/Mods/Tiberian_Dawn
 2. Inside your new mod directory, create a json file called ccmod.json. Below is an example for a mod named "Test".
 
 `
