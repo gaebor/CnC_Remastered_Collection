@@ -1,0 +1,9 @@
+{
+    "name": "NavalTD",
+    "description": "Add gunboat and naval transportation units",
+    "author": "gaebor",
+    "load_order": 1,
+    "version_low": 0,
+    "version_high": 1,
+    "game_type": "TD"
+}
