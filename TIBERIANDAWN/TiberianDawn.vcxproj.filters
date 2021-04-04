@@ -630,6 +630,7 @@
     <ClInclude Include="DLLInterfaceVersion.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="LogActions.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AADATA.CPP">
@@ -1209,6 +1210,7 @@
     <ClCompile Include="RULES.CPP">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LogActions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="win32lib\FACINGFF.ASM">

@@ -40,6 +40,8 @@
 #include	<io.h>
 #include  "ccdde.h"
 
+#include  "LogActions.h"
+
 bool Read_Private_Config_Struct(char *profile, NewConfigType *config);
 void Delete_Swap_Files(void);
 void Print_Error_End_Exit(char *string);
@@ -606,6 +608,9 @@ int DLL_Startup(const char * command_line_in)
 			}
 
 			Memory_Error_Exit = Print_Error_End_Exit;
+
+			CCDebugString("Initializing Logger.\n");
+			InitializeLogger();
 
 			CCDebugString ("C&C95 - Entering main game.\n");
 			Main_Game(argc, argv);

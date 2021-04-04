@@ -37,6 +37,7 @@
 #include "SidebarGlyphx.h"
 
 
+#include "LogActions.h"
 
 
 /*
@@ -521,6 +522,8 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Init(const char *command_line,
 void DLL_Shutdown(void)
 {
 	DLLExportClass::Shutdown();
+	CCDebugString("Destroying Logger.\n");
+	DestroyLogger();
 }
 
 
@@ -1563,6 +1566,7 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Advance_Instance(uint64 player
 	**	Keep track of elapsed time in the game.
 	*/
 	//Score.ElapsedTime += TIMER_SECOND / TICKS_PER_SECOND;
+	LoggerLog(player_id, Frame);
 
 	/*
 	**	Perform any win/lose code as indicated by the global control flags.
@@ -1573,6 +1577,7 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Advance_Instance(uint64 player
 	**	Check for player wins or loses according to global event flag.
 	*/
 	if (PlayerWins) {
+		SendOnSocket("{\"player\":%llu, \"PlayerWins\":true}\n", player_id);
 		//WWMouse->Erase_Mouse(&HidPage, TRUE);
 		PlayerLoses = false;
 		PlayerWins = false;
@@ -1592,7 +1597,7 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Advance_Instance(uint64 player
 		return false;
 	}
 	if (PlayerLoses) {
-
+		SendOnSocket("{\"player\":%llu, \"PlayerLoses\":true}\n", player_id);
 		//WWMouse->Erase_Mouse(&HidPage, TRUE);
 		PlayerWins = false;
 		PlayerLoses = false;

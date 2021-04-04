@@ -111,7 +111,7 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winhttp.lib;winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers />
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
@@ -120,6 +120,12 @@
       <Command>
       </Command>
     </PreLinkEvent>
+    <PostBuildEvent>
+      <Command>copy "$(TargetDir)TiberianDawn.dll" "%HOMEPATH%\Documents\CnCRemastered\Mods\Tiberian_Dawn\CnC_AI\Data\"  </Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>copy to mod folder</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <MASM Include="win32lib\TOBUFF.ASM" />
@@ -245,6 +251,7 @@
     <ClInclude Include="LINK.H" />
     <ClInclude Include="LIST.H" />
     <ClInclude Include="LOADDLG.H" />
+    <ClInclude Include="LogActions.h" />
     <ClInclude Include="LOGIC.H" />
     <ClInclude Include="MAP.H" />
     <ClInclude Include="MAPEDIT.H" />
@@ -449,6 +456,7 @@
     <ClCompile Include="LINK.CPP" />
     <ClCompile Include="LIST.CPP" />
     <ClCompile Include="LOADDLG.CPP" />
+    <ClCompile Include="LogActions.cpp" />
     <ClCompile Include="LOGIC.CPP" />
     <ClCompile Include="MAP.CPP" />
     <ClCompile Include="MAPEDDLG.CPP" />
