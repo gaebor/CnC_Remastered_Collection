@@ -1566,7 +1566,7 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Advance_Instance(uint64 player
 	**	Keep track of elapsed time in the game.
 	*/
 	//Score.ElapsedTime += TIMER_SECOND / TICKS_PER_SECOND;
-	LoggerLog(player_id, Frame);
+	SendWhatHappened(player_id, Frame);
 
 	/*
 	**	Perform any win/lose code as indicated by the global control flags.
@@ -3538,6 +3538,7 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_Input(InputRequestEnum 
 		*/
 		case INPUT_REQUEST_MOUSE_MOVE:
 		{	
+			LogMouse(player_id, WhichMouseButton::BUTTON_NONE);
 			if (!DLLExportClass::Legacy_Render_Enabled()) {
 				break;
 			}
@@ -3568,6 +3569,8 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_Input(InputRequestEnum 
 		*/
 		case INPUT_REQUEST_MOUSE_LEFT_CLICK:
 		{
+			LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
+
 			DLLExportClass::Adjust_Internal_View();
 			
 			DLLForceMouseX = x1;
@@ -3589,6 +3592,8 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_Input(InputRequestEnum 
 		*/
 		case INPUT_REQUEST_MOUSE_RIGHT_CLICK:
 		{
+			LogMouse(player_id, WhichMouseButton::BUTTON_RIGHT);
+
 			DLLExportClass::Adjust_Internal_View();
 			
 			DLLForceMouseX = x1;
@@ -3646,6 +3651,7 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_Input(InputRequestEnum 
 
 		case INPUT_REQUEST_SELL_AT_POSITION:
 		{
+			LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 			DLLExportClass::Adjust_Internal_View();
 			DLLForceMouseX = x1;
 			DLLForceMouseY = y1;
@@ -3665,6 +3671,7 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_Input(InputRequestEnum 
 
 		case INPUT_REQUEST_SELECT_AT_POSITION:
 		{
+			LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 			DLLExportClass::Adjust_Internal_View();
 			DLLForceMouseX = x1;
 			DLLForceMouseY = y1;
@@ -3686,6 +3693,7 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_Input(InputRequestEnum 
 
 		case INPUT_REQUEST_COMMAND_AT_POSITION:
 		{
+			LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 			DLLExportClass::Adjust_Internal_View();
 			DLLForceMouseX = x1;
 			DLLForceMouseY = y1;
@@ -3759,18 +3767,23 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_Structure_Request(Struc
 	switch (request_type) 
 	{
 	case INPUT_STRUCTURE_REPAIR_START: 
+		LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 		DLLExportClass::Repair_Mode(player_id);
 		break;
 	case INPUT_STRUCTURE_REPAIR:
+		LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 		DLLExportClass::Repair(player_id, object_id);
 		break;
 	case INPUT_STRUCTURE_SELL_START: 
+		LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 		DLLExportClass::Sell_Mode(player_id);
 		break;
 	case INPUT_STRUCTURE_SELL:
+		LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 		DLLExportClass::Sell(player_id, object_id);
 		break;
 	case INPUT_STRUCTURE_CANCEL:
+		LogMouse(player_id, WhichMouseButton::BUTTON_RIGHT);
 		DLLExportClass::Repair_Sell_Cancel(player_id);
 		break;
 	default:
@@ -3858,26 +3871,32 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_Sidebar_Request(Sidebar
 		case SIDEBAR_REQUEST_START_CONSTRUCTION_MULTI:
 
 		case SIDEBAR_REQUEST_START_CONSTRUCTION:
+			LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 			DLLExportClass::Start_Construction(player_id, buildable_type, buildable_id);
 			break;
 				
 		case SIDEBAR_REQUEST_HOLD_CONSTRUCTION:
+			LogMouse(player_id, WhichMouseButton::BUTTON_RIGHT);
 			DLLExportClass::Hold_Construction(player_id, buildable_type, buildable_id);
 			break;
 			
 		case SIDEBAR_REQUEST_CANCEL_CONSTRUCTION:
+			LogMouse(player_id, WhichMouseButton::BUTTON_RIGHT);
 			DLLExportClass::Cancel_Construction(player_id, buildable_type, buildable_id);
 			break;
 
 		case SIDEBAR_REQUEST_START_PLACEMENT:
+			LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 			DLLExportClass::Start_Placement(player_id, buildable_type, buildable_id);
 			break;
 			
 		case SIDEBAR_REQUEST_PLACE:
+			LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 			DLLExportClass::Place(player_id, buildable_type, buildable_id, cell_x, cell_y);
 			break;
 
 		case SIDEBAR_CANCEL_PLACE:
+			LogMouse(player_id, WhichMouseButton::BUTTON_RIGHT);
 			DLLExportClass::Cancel_Placement(player_id, buildable_type, buildable_id);
 			break;
 
@@ -3907,6 +3926,7 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Handle_SuperWeapon_Request(Sup
 	switch (request_type)
 	{
 	case SUPERWEAPON_REQUEST_PLACE_SUPER_WEAPON:
+		LogMouse(player_id, WhichMouseButton::BUTTON_LEFT);
 		DLLExportClass::Place_Super_Weapon(player_id, buildable_type, buildable_id, x1, y1);
 		break;
 	}

@@ -3,7 +3,16 @@
 
 void InitializeLogger();
 void DestroyLogger();
-void LoggerLog(unsigned __int64 player_id, long Frame);
+void SendWhatHappened(unsigned __int64 player_id, long Frame);
+
+enum WhichMouseButton
+{
+	BUTTON_NONE,
+	BUTTON_LEFT,
+	BUTTON_RIGHT,
+};
+
+void LogMouse(unsigned __int64 player, WhichMouseButton button = BUTTON_NONE);
 
 void SendOnSocket(const char* format, ...);
 

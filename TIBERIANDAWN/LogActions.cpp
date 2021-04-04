@@ -4,22 +4,26 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+// #include <unordered_map>
+
 #include "LogActions.h"
 
 #include "FUNCTION.H"
 #include "EXTERNS.H"
 #include "DEFINES.H"
 
-int myprintf(const char* format, ...)
+static const unsigned int text_buffer_size = 256;
+
+char* mysprintf(const char* format, ...)
 {
-	static char text_buffer[256];
+	static char text_buffer[text_buffer_size];
 
 	va_list args;
 	va_start(args, format);
-	int result = vsnprintf(text_buffer, 256, format, args);
+	int result = vsnprintf(text_buffer, text_buffer_size, format, args);
 	va_end(args);
-	CCDebugString(text_buffer);
-	return result;
+	text_buffer[text_buffer_size - 1] = '\0';
+	return text_buffer;
 }
 
 static HWND hwnd;
@@ -31,6 +35,40 @@ static HINTERNET hConnectionHandle = NULL;
 static HINTERNET hRequestHandle = NULL;
 
 
+struct MouseState
+{
+	MouseState() : pt({0, 0}), button(BUTTON_NONE) {}
+	POINT pt;
+	WhichMouseButton button;
+	void Reset()
+	{
+		button = BUTTON_NONE;
+		// don't erase position
+	}
+};
+
+// static std::unordered_map<size_t, MouseState> mouse_states;
+static MouseState mouse;
+
+void LogMouse(unsigned __int64 player_id, WhichMouseButton button)
+{
+	// auto& mouse = mouse_states[player_id];
+	
+	if (button >= mouse.button)
+	{// this keeps clicks over movements
+		mouse.button = button;
+
+		if (0 == GetCursorPos(&mouse.pt))
+		{
+			SendOnSocket("{\"GetCursorPos\":%d}", GetLastError());
+		}
+		else if (0 == ScreenToClient(hwnd, &mouse.pt))
+		{
+			SendOnSocket("{\"ScreenToClient\":%d}", GetLastError());
+		}
+	}
+}
+
 static void SendOnSocketRaw(PVOID message, DWORD size)
 {
 	DWORD dwError = WinHttpWebSocketSend(hWebSocketHandle,
@@ -39,19 +77,19 @@ static void SendOnSocketRaw(PVOID message, DWORD size)
 		size);
 	if (dwError != NO_ERROR)
 	{
-		myprintf("WinHttpWebSocketSend: %d, GetLastError: %d\n", dwError, GetLastError());
+		CCDebugString(mysprintf("WinHttpWebSocketSend: %d, GetLastError: %d\n", dwError, GetLastError()));
 	}
 }
 
 void SendOnSocket(const char* format, ...)
 {
-	static char text_buffer[256];
+	static char text_buffer[text_buffer_size];
 	va_list args;
 	va_start(args, format);
-	vsnprintf(text_buffer, 256, format, args);
+	vsnprintf(text_buffer, text_buffer_size, format, args);
 	va_end(args);
-	text_buffer[255] = '\0';
-	SendOnSocketRaw((PVOID)text_buffer, 256);
+	text_buffer[text_buffer_size - 1] = '\0';
+	SendOnSocketRaw((PVOID)text_buffer, strlen(text_buffer) + 1);
 }
 
 
@@ -162,11 +200,11 @@ void InitWebSocket()
 	WinHttpCloseHandle(hRequestHandle);
 	hRequestHandle = NULL;
 
-	myprintf("Succesfully opened websocket\n");
+	CCDebugString("Succesfully opened websocket\n");
 	return;
 
 quit:
-	myprintf("Last Error: %d\n", dwError);
+	CCDebugString(mysprintf("Last Error: %d\n", dwError));
 
 	if (hRequestHandle != NULL)
 	{
@@ -250,21 +288,24 @@ void InitializeLogger()
 	int needed_size = GetDesktopResolution(&w, &h);
 	if (needed_size <= 0)
 	{
-		myprintf("unable to obtain desktop size!\n");
+		CCDebugString("Unable to obtain desktop size!\n");
 		return;
 	}
 	
 	needed_size += 256 + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
 	websocket_msg_buf = new unsigned char[needed_size];
 	if (!websocket_msg_buf) {
-		myprintf("unable to allocate %u for image buffer!\n", needed_size);
+		CCDebugString(mysprintf("Unable to allocate %u for image buffer!\n", needed_size));
 		return;
 	}
 	InitWebSocket();
+	SendOnSocket("%s", "\"START\"");
 }
 
 void DestroyLogger()
 {
+	SendOnSocket("%s", "\"END\"");
+
 	if (websocket_msg_buf)
 		delete[] websocket_msg_buf;
 
@@ -318,7 +359,7 @@ void DestroyLogger()
 	}
 }
 
-void LoggerLog(unsigned __int64 player_id, long Frame)
+void SendWhatHappened(unsigned __int64 player_id, long Frame)
 {
 	if (websocket_msg_buf == 0)
 		return;
@@ -344,7 +385,7 @@ void LoggerLog(unsigned __int64 player_id, long Frame)
 
 	if (!hdcMemDC)
 	{
-		myprintf("CreateCompatibleDC has failed!\n");
+		CCDebugString("CreateCompatibleDC has failed!\n");
 		goto done;
 	}
 
@@ -375,7 +416,7 @@ void LoggerLog(unsigned __int64 player_id, long Frame)
 
 	if (!hbmScreen)
 	{
-		myprintf("CreateCompatibleBitmap Failed!\n");
+		CCDebugString("CreateCompatibleBitmap Failed!\n");
 		goto done;
 	}
 
@@ -390,7 +431,7 @@ void LoggerLog(unsigned __int64 player_id, long Frame)
 		0, 0,
 		SRCCOPY))
 	{
-		myprintf("BitBlt has Failed!\n");
+		CCDebugString("BitBlt has Failed!\n");
 		goto done;
 	}
 
@@ -420,12 +461,9 @@ void LoggerLog(unsigned __int64 player_id, long Frame)
 		websocket_msg_buf + 256 + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER), 
 		(BITMAPINFO*)&bi, DIB_RGB_COLORS))
 	{
-		myprintf("GetDIBits failed!\n");
+		CCDebugString("GetDIBits failed!\n");
 		goto done;
 	}
-	snprintf((char*)websocket_msg_buf, 256, "{\"player\":%llu,\"frame\":%ld}", player_id, Frame);
-	websocket_msg_buf[255] = '\0';
-	
 	// snprintf((char*)websocket_msg_buf, 256, "capture%010d.bmp", Frame);
 	//// A file is created, this is where we will save the screen capture.
 	//hFile = CreateFileA((LPCSTR)websocket_msg_buf,
@@ -454,7 +492,14 @@ void LoggerLog(unsigned __int64 player_id, long Frame)
 	//// Close the handle for the file that was created.
 	//CloseHandle(hFile);
 
+	// const auto& mouse = mouse_states[player_id];
+	snprintf((char*)websocket_msg_buf, 256,
+		"{\"player\":%llu,\"frame\":%ld, \"mouse\":{\"x\":%d,\"y\":%d, \"button\":%d}}",
+		player_id, Frame, mouse.pt.x, mouse.pt.y, (int)mouse.button);
+	websocket_msg_buf[255] = '\0';
+
 	SendOnSocketRaw(websocket_msg_buf, dwSizeofDIB + 256);
+	mouse.Reset();
 
 	// Clean up.
 done:
