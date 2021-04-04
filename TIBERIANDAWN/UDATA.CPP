@@ -456,8 +456,8 @@ static UnitTypeClass const UnitHover(
 	TXT_HOVER,								// NAME:			Text name of this unit type.
 	"LST",									// NAME:			Text name of this unit type.
 	ANIM_FBALL1,							// EXPLOSION:	Type of explosion when destroyed.
-	99,							// Build level.
-	STRUCTF_NONE,				// Building prerequisite.
+	4,							// Build level.
+	STRUCTF_WEAP,				// Building prerequisite.
 		false,			// Can this be a goodie surprise from a crate?
 		false,			// Is a leader type?
 		false,			// Only has eight facings?
@@ -467,15 +467,14 @@ static UnitTypeClass const UnitHover(
 		false,			// Can this unit squash infantry?
 		false,			// Does this unit harvest Tiberium?
 		false,			// Is invisible to radar?
-//		true,			// Is selectable by player?
-		false,			// Is selectable by player?
-		false,			// Can it be a target for attack or move?
+		true,			// Is selectable by player?
+		true,			// Can it be a target for attack or move?
 		true,				// Is it insignificant (won't be announced)?
-		true,				// Is it immune to normal combat damage?
+		false,				// Is it immune to normal combat damage?
 		false,			// Is it equipped with a combat turret?
 		false,			// Fires multiple shots in quick succession?
 		false,			// Can it be repaired in a repair facility?
-		false,			// Can the player construct or order this unit?
+		true,			// Can the player construct or order this unit?
 		false,			// Is there a crew inside?
 		false,			// Does it have a rotating radar dish?
 		false,			// Is there an associated firing animation?
@@ -488,7 +487,7 @@ static UnitTypeClass const UnitHover(
 	-1,										// AMMO:			Number of shots it has (default).
 	400,										// STRENGTH:	Strength (in damage points).
 	3,											// SIGHTRANGE:	Range of sighting.
-	300,										// COST:			Cost to build (Credits).
+	1000,										// COST:			Cost to build (Credits).
 	99,										// SCENARIO:	Starting availability scenario.
 	80,40,									// RISK/RWRD:	Risk/reward rating values.
 	HOUSEF_MULTI1|
@@ -1038,8 +1037,8 @@ static UnitTypeClass const UnitGunBoat(
 	TXT_GUNBOAT,							// NAME:			Text name of this unit type.
 	"BOAT",									// NAME:			Text name of this unit type.
 	ANIM_FBALL1,							// EXPLOSION:	Type of explosion when destroyed.
-	99,							// Build level.
-	STRUCTF_NONE,				// Building prerequisite.
+	4,							// Build level.
+	STRUCTF_WEAP,				// Building prerequisite.
 		false,			// Can this be a goodie surprise from a crate?
 		true,				// Is a leader type?
 		false,			// Only has eight facings?
@@ -1056,7 +1055,7 @@ static UnitTypeClass const UnitGunBoat(
 		true,				// Is it equipped with a combat turret?
 		true,				// Fires multiple shots in quick succession?
 		false,			// Can it be repaired in a repair facility?
-		false,			// Can the player construct or order this unit?
+		true,			// Can the player construct or order this unit?
 		true,				// Is there a crew inside?
 		false,			// Does it have a rotating radar dish?
 		false,			// Is there an associated firing animation?
@@ -1069,7 +1068,7 @@ static UnitTypeClass const UnitGunBoat(
 	-1,										// AMMO:			Number of shots it has (default).
 	700,										// STRENGTH:	Strength (in damage points).
 	5,											// SIGHTRANGE:	Range of sighting.
-	300,										// COST:			Cost to build (Credits).
+	1500,										// COST:			Cost to build (Credits).
 	99,										// SCENARIO:	Starting availability scenario.
 	80,40,									// RISK/RWRD:	Risk/reward rating values.
 	HOUSEF_MULTI1|
