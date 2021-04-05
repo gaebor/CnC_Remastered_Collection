@@ -384,7 +384,7 @@ static int GradImageToMemory(unsigned char* buffer)
 	DWORD dwSizeofDIB = 0;
 	HANDLE hFile = NULL;
 	DWORD dwBmpSize = 0;
-	// RECT rcMemory = { 0, 0, 720, 405 };
+	RECT rcMemory = { 0, 0, 720, 405 };
 
 	hdcWindow = GetDC(hwnd);
 
@@ -404,7 +404,7 @@ static int GradImageToMemory(unsigned char* buffer)
 
 	// Create a compatible bitmap from the Memory DC.
 	hBitmapMemory = CreateCompatibleBitmap(hdcWindow, 
-		rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
+		rcMemory.right, rcMemory.bottom);
 
 	if (!hBitmapMemory)
 	{
@@ -415,15 +415,16 @@ static int GradImageToMemory(unsigned char* buffer)
 	// Select the compatible bitmap into the compatible memory DC.
 	SelectObject(hdcMemDC, hBitmapMemory);
 
-	// Bit block transfer into our compatible memory DC.
-	if (!BitBlt(hdcMemDC,
+	SetStretchBltMode(hdcMemDC, HALFTONE);
+	if (!StretchBlt(hdcMemDC,
 		0, 0,
-		rcClient.right - rcClient.left, rcClient.bottom - rcClient.top,
+		rcMemory.right, rcMemory.bottom,
 		hdcWindow,
 		rcClient.left, rcClient.top,
+		rcClient.right - rcClient.left, rcClient.bottom - rcClient.top,
 		SRCCOPY))
 	{
-		CCDebugString("BitBlt has failed!\n");
+		CCDebugString("StretchBlt has failed!\n");
 		goto done;
 	}
 
