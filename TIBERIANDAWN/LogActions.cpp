@@ -92,7 +92,9 @@ void SendOnSocket(const char* format, ...)
 	SendOnSocketRaw((PVOID)text_buffer, strlen(text_buffer) + 1);
 }
 
-
+/*
+	credit to https://github.com/microsoft/Windows-classic-samples/blob/master/Samples/WinhttpWebsocket/cpp/WinhttpWebsocket.cpp
+*/
 void InitWebSocket()
 {
 	DWORD dwError = ERROR_SUCCESS;
@@ -315,25 +317,6 @@ void DestroyLogger()
 
 	WinHttpWebSocketClose(hWebSocketHandle, WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS, NULL, 0);
 
-	////
-	//// Check close status returned by the server.
-	////
-
-	//dwError = WinHttpWebSocketQueryCloseStatus(hWebSocketHandle,
-	//	&usStatus,
-	//	rgbCloseReasonBuffer,
-	//	ARRAYSIZE(rgbCloseReasonBuffer),
-	//	&dwCloseReasonLength);
-	//if (dwError != ERROR_SUCCESS)
-	//{
-	//	goto quit;
-	//}
-
-	//wprintf(L"The server closed the connection with status code: '%d' and reason: '%.*S'\n",
-	//	(int)usStatus,
-	//	dwCloseReasonLength,
-	//	rgbCloseReasonBuffer);
-
 	if (hRequestHandle != NULL)
 	{
 		WinHttpCloseHandle(hRequestHandle);
@@ -359,25 +342,50 @@ void DestroyLogger()
 	}
 }
 
-void SendWhatHappened(unsigned __int64 player_id, long Frame)
+static RECT FitRect(RECT srcRect, int desired_width, int desired_height)
 {
-	if (websocket_msg_buf == 0)
-		return;
+	int current_width = srcRect.right - srcRect.left;
+	int current_height = srcRect.bottom - srcRect.top;
 
+	if (current_width * desired_height > desired_width * current_height)
+	{
+		// current is wider aspect ration than desired
+		// crop left and rigt
+		int dw = current_width - current_height * desired_width / desired_height;
+		srcRect.left += dw / 2;
+		srcRect.right -= dw / 2;
+	}
+	else if (current_width * desired_height < desired_width * current_height)
+	{
+		// current is taller aspect ration than desired
+		// crop top and bottom
+		int dh = current_height - current_width * desired_height / desired_width;
+		srcRect.top += dh / 2;
+		srcRect.bottom -= dh / 2;
+	}
+	
+	return srcRect;
+}
 
-	HDC hdcScreen;
+// buffer is asssumed to be plenty big
+/*
+	credit to https://docs.microsoft.com/en-us/windows/win32/gdi/capturing-an-image
+*/
+static int GradImageToMemory(unsigned char* buffer)
+{
+	if (buffer == 0)
+		return 0;
+
 	HDC hdcWindow;
 	HDC hdcMemDC = NULL;
-	HBITMAP hbmScreen = NULL;
-	BITMAP bmpScreen;
+	HBITMAP hBitmapMemory = NULL;
+	BITMAP bmpMemory;
 	DWORD dwBytesWritten = 0;
 	DWORD dwSizeofDIB = 0;
 	HANDLE hFile = NULL;
 	DWORD dwBmpSize = 0;
+	// RECT rcMemory = { 0, 0, 720, 405 };
 
-	// Retrieve the handle to a display device context for the client 
-	// area of the window. 
-	hdcScreen = GetDC(NULL);
 	hdcWindow = GetDC(hwnd);
 
 	// Create a compatible DC, which is used in a BitBlt from the window DC.
@@ -392,58 +400,42 @@ void SendWhatHappened(unsigned __int64 player_id, long Frame)
 	// Get the client area for size calculation.
 	RECT rcClient;
 	GetClientRect(hwnd, &rcClient);
+	rcClient = FitRect(rcClient, 16, 9);
 
-	/*static char buffer[256];
-	snprintf(buffer, 256, "b%d l%d t%d r%d\n", rcClient.bottom, rcClient.left, rcClient.top, rcClient.right);
-	CCDebugString(buffer);
-	*/
-	//// The source DC is the entire screen, and the destination DC is the current window (HWND).
-	//if (!StretchBlt(hdcWindow,
-	//	0, 0,
-	//	rcClient.right, rcClient.bottom,
-	//	hdcScreen,
-	//	0, 0,
-	//	GetSystemMetrics(SM_CXSCREEN),
-	//	GetSystemMetrics(SM_CYSCREEN),
-	//	SRCCOPY))
-	//{
-	//	MessageBox(hWnd, L"StretchBlt has failed", L"Failed", MB_OK);
-	//	goto done;
-	//}
+	// Create a compatible bitmap from the Memory DC.
+	hBitmapMemory = CreateCompatibleBitmap(hdcWindow, 
+		rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
 
-	// Create a compatible bitmap from the Window DC.
-	hbmScreen = CreateCompatibleBitmap(hdcWindow, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
-
-	if (!hbmScreen)
+	if (!hBitmapMemory)
 	{
 		CCDebugString("CreateCompatibleBitmap Failed!\n");
 		goto done;
 	}
 
 	// Select the compatible bitmap into the compatible memory DC.
-	SelectObject(hdcMemDC, hbmScreen);
+	SelectObject(hdcMemDC, hBitmapMemory);
 
 	// Bit block transfer into our compatible memory DC.
 	if (!BitBlt(hdcMemDC,
 		0, 0,
 		rcClient.right - rcClient.left, rcClient.bottom - rcClient.top,
 		hdcWindow,
-		0, 0,
+		rcClient.left, rcClient.top,
 		SRCCOPY))
 	{
-		CCDebugString("BitBlt has Failed!\n");
+		CCDebugString("BitBlt has failed!\n");
 		goto done;
 	}
 
-	// Get the BITMAP from the HBITMAP.
-	GetObject(hbmScreen, sizeof(BITMAP), &bmpScreen);
+	// save to buffer
+	GetObject(hBitmapMemory, sizeof(BITMAP), &bmpMemory);
 
-	BITMAPFILEHEADER& bmfHeader = *(BITMAPFILEHEADER*)(websocket_msg_buf + 256);
-	BITMAPINFOHEADER& bi = *(BITMAPINFOHEADER*)(websocket_msg_buf + 256 + sizeof(BITMAPFILEHEADER));
+	BITMAPFILEHEADER& bmfHeader = *(BITMAPFILEHEADER*)(buffer);
+	BITMAPINFOHEADER& bi = *(BITMAPINFOHEADER*)(buffer + sizeof(BITMAPFILEHEADER));
 
 	bi.biSize = sizeof(BITMAPINFOHEADER);
-	bi.biWidth = bmpScreen.bmWidth;
-	bi.biHeight = bmpScreen.bmHeight;
+	bi.biWidth = bmpMemory.bmWidth;
+	bi.biHeight = bmpMemory.bmHeight;
 	bi.biPlanes = 1;
 	bi.biBitCount = 32;
 	bi.biCompression = BI_RGB;
@@ -453,12 +445,12 @@ void SendWhatHappened(unsigned __int64 player_id, long Frame)
 	bi.biClrUsed = 0;
 	bi.biClrImportant = 0;
 
-	dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
+	dwBmpSize = ((bmpMemory.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpMemory.bmHeight;
 
 	// Gets the "bits" from the bitmap, and copies them into a buffer 
 	// that's pointed to by lpbitmap.
-	if (0 == GetDIBits(hdcWindow, hbmScreen, 0, bmpScreen.bmHeight, 
-		websocket_msg_buf + 256 + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER), 
+	if (0 == GetDIBits(hdcWindow, hBitmapMemory, 0, bmpMemory.bmHeight,
+		buffer + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER),
 		(BITMAPINFO*)&bi, DIB_RGB_COLORS))
 	{
 		CCDebugString("GetDIBits failed!\n");
@@ -485,12 +477,19 @@ void SendWhatHappened(unsigned __int64 player_id, long Frame)
 	// bfType must always be BM for Bitmaps.
 	bmfHeader.bfType = 0x4D42; // BM.
 
-	//WriteFile(hFile, (LPSTR)&bmfHeader, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
-	//WriteFile(hFile, (LPSTR)&bi, sizeof(BITMAPINFOHEADER), &dwBytesWritten, NULL);
-	//WriteFile(hFile, (LPSTR)websocket_msg_buf + 256, dwBmpSize, &dwBytesWritten, NULL);
+	// Clean up.
+done:
+	DeleteObject(hBitmapMemory);
+	DeleteObject(hdcMemDC);
+	ReleaseDC(hwnd, hdcWindow);
 
-	//// Close the handle for the file that was created.
-	//CloseHandle(hFile);
+	return dwSizeofDIB;
+}
+
+void SendWhatHappened(unsigned __int64 player_id, long Frame)
+{
+	
+	const auto buffer_written = GradImageToMemory(websocket_msg_buf + text_buffer_size);
 
 	// const auto& mouse = mouse_states[player_id];
 	snprintf((char*)websocket_msg_buf, 256,
@@ -498,13 +497,7 @@ void SendWhatHappened(unsigned __int64 player_id, long Frame)
 		player_id, Frame, mouse.pt.x, mouse.pt.y, (int)mouse.button);
 	websocket_msg_buf[255] = '\0';
 
-	SendOnSocketRaw(websocket_msg_buf, dwSizeofDIB + 256);
+	SendOnSocketRaw(websocket_msg_buf, buffer_written + text_buffer_size);
 	mouse.Reset();
 
-	// Clean up.
-done:
-	DeleteObject(hbmScreen);
-	DeleteObject(hdcMemDC);
-	ReleaseDC(NULL, hdcScreen);
-	ReleaseDC(hwnd, hdcWindow);
 }
