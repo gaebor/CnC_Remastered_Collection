@@ -1306,8 +1306,9 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Start_Instance_Variation(int s
 extern "C" __declspec(dllexport) bool __cdecl CNC_Start_Custom_Instance(const char* content_directory, const char* directory_path, 
 	const char* scenario_name, int build_level, bool multiplayer)
 {
-	SendOnSocket("{\"Start_Custom_Instance\":{\"content_directory\":\"%.20s\",\"directory_path\":\"%.20s\",\"scenario_name\":\"%.20s\",\"build_level\":%d,\"multiplayer\":%s}}",
-		content_directory, directory_path, scenario_name, build_level, multiplayer ? "false" : "true");
+	SendOnSocket("{\"Start_Custom_Instance\":{\"scenario_name\":\"%.20s\",\"build_level\":%d,\"multiplayer\":%s}}",
+		// content_directory, directory_path, 
+		scenario_name, build_level, multiplayer ? "false" : "true");
 
 	if (content_directory == NULL) {
 		return false;
@@ -1597,7 +1598,6 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Advance_Instance(uint64 player
 	**	Check for player wins or loses according to global event flag.
 	*/
 	if (PlayerWins) {
-		SendOnSocket("{\"player\":%llu, \"PlayerWins\":true}\n", player_id);
 		//WWMouse->Erase_Mouse(&HidPage, TRUE);
 		PlayerLoses = false;
 		PlayerWins = false;
@@ -1617,7 +1617,6 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Advance_Instance(uint64 player
 		return false;
 	}
 	if (PlayerLoses) {
-		SendOnSocket("{\"player\":%llu, \"PlayerLoses\":true}\n", player_id);
 		//WWMouse->Erase_Mouse(&HidPage, TRUE);
 		PlayerWins = false;
 		PlayerLoses = false;
@@ -2427,6 +2426,9 @@ void DLLExportClass::On_Game_Over(uint64 glyphx_Player_id, bool player_wins)
 	new_event.GameOver.Multiplayer = false;
 	new_event.GameOver.MultiPlayerTotalPlayers = 0;
 
+	SendOnSocket("{\"player\":%llu,\"winner\":%s}",
+		glyphx_Player_id, player_wins ? "true" : "false");
+
 	Calculate_Single_Player_Score(new_event);
 
 	if (player_wins)
@@ -2531,6 +2533,11 @@ void DLLExportClass::On_Multiplayer_Game_Over(void)
 			multi_player_data.ResourcesGathered = player_ptr->HarvestedCredits;
 			multi_player_data.TotalUnitsKilled = units_killed;
 			multi_player_data.TotalStructuresKilled = structures_killed;
+
+			SendOnSocket("{\"player\":%llu,\"winner\":%s}",
+				(unsigned __int64)multi_player_data.GlyphXPlayerID,
+				multi_player_data.IsWinner ? "true" : "false"
+			);
 
 			if ( player_index < GAME_OVER_MULTIPLAYER_MAX_PLAYERS_TRACKED ) 
 			{
