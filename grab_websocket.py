@@ -1,6 +1,8 @@
-import sys
+from sys import stderr
 import json
 from io import BytesIO
+import time
+from os import mkdir
 
 import tornado.ioloop
 import tornado.web
@@ -15,34 +17,51 @@ class Application(tornado.web.Application):
 
 
 class MainHandler(tornado.websocket.WebSocketHandler):
-    frames = []
+    messages = []
+    record_hash = 0
 
+    @staticmethod
     def check_frames():
-        expected = range(min(MainHandler.frames), max(MainHandler.frames) + 1)
-        if list(expected) != sorted(MainHandler.frames):
-            return set(expected) - set(MainHandler.frames)
-        else:
+        frames = [message['frame'] for message in MainHandler.messages if 'frame' in message]
+        expected = range(min(frames), max(frames) + 1)
+        if list(expected) == sorted(frames):
             return "check_frames OK!"
+        else:
+            return set(expected) - set(frames)
 
     def on_message(self, message):
         text_message, image_data = message[:256], message[256:]
+        text_message = text_message[: text_message.index(b'\0')]
+        try:
+            text_message = text_message.decode('utf8')
+        except UnicodeDecodeError as e:
+            print(e, stderr)
+            text_message = text_message.decode('latin1')
 
-        text_message = text_message[: text_message.index(b'\0')].decode('utf8')
         try:
             text_message = json.loads(text_message)
-            if 'frame' in text_message:
-                MainHandler.frames.append(text_message['frame'])
-            elif text_message == "START":
-                MainHandler.frames = []
-            elif text_message == "END":
-                print(MainHandler.check_frames(), file=sys.stderr)
         except json.decoder.JSONDecodeError as e:
-            print(e, sys.stderr)
+            print(e, stderr)
+
+        if text_message == "START":
+            MainHandler.messages = []
+            MainHandler.record_hash = hash(time.time())
+            try:
+                mkdir(f'{MainHandler.record_hash:020}')
+            except FileExistsError:
+                pass
+        elif text_message == "END":
+            with open(f'{MainHandler.record_hash:020}/messages.json', 'w') as f:
+                json.dump(MainHandler.messages, f, indent=4)
+            print(MainHandler.check_frames(), file=stderr)
+            MainHandler.messages = []
+        else:
+            MainHandler.messages.append(text_message)
 
         if len(image_data) > 0:
             image = Image.open(BytesIO(image_data), formats=['BMP'])
-            # if 'frame' in text_message and text_message['frame'] % 100 == 0:
-            #     image.show()
+            with open(f'{MainHandler.record_hash:020}/{text_message["frame"]:010}.png', 'wb') as f:
+                image.convert("RGB").save(f)
         else:
             print(text_message)
 
