@@ -354,36 +354,11 @@ void DestroyLogger()
 	}
 }
 
-static RECT FitRect(RECT srcRect, int desired_width, int desired_height)
-{
-	int current_width = srcRect.right - srcRect.left;
-	int current_height = srcRect.bottom - srcRect.top;
-
-	if (current_width * desired_height > desired_width * current_height)
-	{
-		// current is wider aspect ration than desired
-		// crop left and rigt
-		int dw = current_width - current_height * desired_width / desired_height;
-		srcRect.left += dw / 2;
-		srcRect.right -= dw / 2;
-	}
-	else if (current_width * desired_height < desired_width * current_height)
-	{
-		// current is taller aspect ration than desired
-		// crop top and bottom
-		int dh = current_height - current_width * desired_height / desired_width;
-		srcRect.top += dh / 2;
-		srcRect.bottom -= dh / 2;
-	}
-	
-	return srcRect;
-}
-
 // buffer is asssumed to be plenty big
 /*
 	credit to https://docs.microsoft.com/en-us/windows/win32/gdi/capturing-an-image
 */
-static int GradImageToMemory(unsigned char* buffer)
+static int GrabImageToMemory(unsigned char* buffer, float& scale_factor)
 {
 	if (buffer == 0)
 		return 0;
@@ -411,7 +386,8 @@ static int GradImageToMemory(unsigned char* buffer)
 	// Get the client area for size calculation.
 	RECT rcClient;
 	GetClientRect(hwnd, &rcClient);
-	rcClient = FitRect(rcClient, 16, 9);
+
+	scale_factor = (float)rcMemory.right / (rcClient.right - rcClient.left);
 
 	// Create a compatible bitmap from the Memory DC.
 	hBitmapMemory = CreateCompatibleBitmap(hdcWindow, 
@@ -490,13 +466,12 @@ done:
 
 void SendWhatHappened(unsigned __int64 player_id, long Frame)
 {
-	
-	const auto buffer_written = GradImageToMemory(websocket_msg_buf + text_buffer_size);
+	float scale_factor;
+	const auto buffer_written = GrabImageToMemory(websocket_msg_buf + text_buffer_size, scale_factor);
 
-	// const auto& mouse = mouse_states[player_id];
 	snprintf((char*)websocket_msg_buf, 256,
-		"{\"player\":%llu,\"frame\":%ld, \"mouse\":{\"x\":%d,\"y\":%d, \"button\":%d}}",
-		player_id, Frame, mouse.pt.x, mouse.pt.y, (int)mouse.button);
+		"{\"player\":%llu,\"frame\":%ld, \"mouse\":{\"x\":%f,\"y\":%f, \"button\":%d}}",
+		player_id, Frame, mouse.pt.x * scale_factor, mouse.pt.y * scale_factor, (int)mouse.button);
 	websocket_msg_buf[255] = '\0';
 
 	SendOnSocketRaw(websocket_msg_buf, buffer_written + text_buffer_size);
