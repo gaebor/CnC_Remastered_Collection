@@ -1,6 +1,8 @@
 #ifndef LOG_ACTIONS_H
 #define LOG_ACTIONS_H
 
+#include "DLLInterface.h"
+
 void InitializeLogger();
 void DestroyLogger();
 void SendWhatHappened(unsigned __int64 player_id, long Frame);
@@ -15,5 +17,7 @@ enum WhichMouseButton
 void LogMouse(unsigned __int64 player, WhichMouseButton button = BUTTON_NONE);
 
 void SendOnSocket(const char* format, ...);
+
+void LogPlayerInfo(const CNCPlayerInfoStruct& playerinfo);
 
 #endif

@@ -645,6 +645,9 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Get_Palette(unsigned char(&pal
 extern "C" __declspec(dllexport) bool __cdecl CNC_Set_Multiplayer_Data(int scenario_index, CNCMultiplayerOptionsStruct &game_options, int num_players, CNCPlayerInfoStruct *player_list, int max_players)
 {
 	
+	SendOnSocket("{\"Set_Multiplayer_Data\":{\"scenario_index\":%d,\"num_players\":%d,\"max_players\":%d}}",
+		scenario_index, num_players, max_players);
+
 	if (num_players <= 0) {
 		return false;
 	}
@@ -729,6 +732,8 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Clear_Object_Selection(uint64 
 		return false;
 	}
 
+	SendOnSocket("{\"Clear_Object_Selection\":{\"player\":%llu}}", player_id);
+
 	Unselect_All();
 
 	return true;
@@ -739,6 +744,7 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Select_Object(uint64 player_id
 	if (!DLLExportClass::Set_Player_Context(player_id)) {
 		return false;
 	}
+	SendOnSocket("{\"Select_Object\":{\"player\":%llu,\"object_type_id\":%d,\"object_to_select_id\":%d}}", player_id, object_type_id, object_to_select_id);
 
 	switch (object_type_id)
 	{
@@ -1145,6 +1151,7 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Read_INI(int scenario_index, i
 extern "C" __declspec(dllexport) void __cdecl CNC_Set_Home_Cell(int x, int y, uint64 player_id)
 {
 	DLLExportClass::Set_Home_Cell(x, y, player_id);
+	SendOnSocket("{\"Set_Home_Cell\":{\"player_id\":%llu,\"x\":%d,\"y\":%d}}", player_id, x, y);
 }
 
 
@@ -1163,6 +1170,16 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Set_Home_Cell(int x, int y, ui
 **************************************************************************************************/
 extern "C" __declspec(dllexport) bool __cdecl CNC_Start_Instance_Variation(int scenario_index, int scenario_variation, int scenario_direction, int build_level, const char *faction, const char *game_type, const char *content_directory, int sabotaged_structure, const char *override_map_name)
 {
+	SendOnSocket("{\"Start_Instance_Variation\":{"
+					"\"scenario_index\":%d,\"scenario_variation\":%d,\"scenario_direction\":%d,"
+					"\"build_level\":%d,"
+					"\"faction\":\"%.20s\","
+			        "\"game_type\":\"%.20s\","
+					// "\"content_directory\":\"%.20s\""
+					"\"sabotaged_structure\":%d,\"override_map_name\":\"%.20s\""
+				"}}", scenario_index, scenario_variation, scenario_direction, build_level, faction, game_type, sabotaged_structure, override_map_name
+		// content_directory
+	);
 	if (game_type == NULL) {
 		return false;
 	}
@@ -1289,6 +1306,9 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Start_Instance_Variation(int s
 extern "C" __declspec(dllexport) bool __cdecl CNC_Start_Custom_Instance(const char* content_directory, const char* directory_path, 
 	const char* scenario_name, int build_level, bool multiplayer)
 {
+	SendOnSocket("{\"Start_Custom_Instance\":{\"content_directory\":\"%.20s\",\"directory_path\":\"%.20s\",\"scenario_name\":\"%.20s\",\"build_level\":%d,\"multiplayer\":%s}}",
+		content_directory, directory_path, scenario_name, build_level, multiplayer ? "false" : "true");
+
 	if (content_directory == NULL) {
 		return false;
 	}
@@ -1742,6 +1762,7 @@ extern "C" __declspec(dllexport) void __cdecl CNC_Set_Difficulty(int difficulty)
 	if (GameToPlay == GAME_NORMAL) {
 		Set_Scenario_Difficulty(difficulty);
 	}
+	SendOnSocket("{\"Set_Difficulty\":{\"difficulty\":%d}}", difficulty);
 }
 
 
@@ -1875,8 +1896,9 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Get_Start_Game_Info(uint64 pla
 	if (!DLLExportClass::Set_Player_Context(player_id)) {
 		return false;
 	}
-	
 	start_location_waypoint_index = PlayerPtr->StartLocationOverride;
+	SendOnSocket("{\"Get_Start_Game_Info\":{\"player_id\":%llu,\"start_location_waypoint_index\":%d}}",
+		player_id, start_location_waypoint_index);
 	return true;
 }
 
@@ -2779,6 +2801,7 @@ void DLLExportClass::Force_Human_Team_Wins(uint64 quitting_player_id)
 extern "C" __declspec(dllexport) bool __cdecl CNC_Get_Game_State(GameStateRequestEnum state_type, uint64 player_id, unsigned char *buffer_in, unsigned int buffer_size)
 {
 	bool got_state = false;
+	// SendOnSocket("{\"Get_Game_State\":{\"state_type\":%d,\"player_id\":%llu}}", (int)state_type, player_id);
 
 	switch (state_type) {
 		
@@ -5713,6 +5736,8 @@ bool DLLExportClass::Get_Player_Info_State(uint64 player_id, unsigned char *buff
 		return false;;
 	}
 
+
+
 	strncpy(&player_info->Name[0], MPlayerNames[CurrentLocalPlayerIndex], MPLAYER_NAME_MAX);
 	player_info->Name[MPLAYER_NAME_MAX - 1] = 0;			// Make sure it's terminated
 	player_info->House = PlayerPtr->Class->House;
@@ -5771,6 +5796,8 @@ bool DLLExportClass::Get_Player_Info_State(uint64 player_id, unsigned char *buff
 
 	// Screen shake
 	player_info->ScreenShake = PlayerPtr->ScreenShakeTime;
+
+	LogPlayerInfo(*player_info);
 
 	return true;
 };

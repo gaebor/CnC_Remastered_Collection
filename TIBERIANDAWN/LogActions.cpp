@@ -92,6 +92,28 @@ void SendOnSocket(const char* format, ...)
 	SendOnSocketRaw((PVOID)text_buffer, strlen(text_buffer) + 1);
 }
 
+static CNCPlayerInfoStruct player_info;
+
+void LogPlayerInfo(const CNCPlayerInfoStruct& playerinfo)
+{
+	static bool first_player = true;
+	if (first_player)
+	{
+		player_info = playerinfo;
+		SendOnSocket("{\"Player\":{"
+			"\"Name\":\"%.*s\","
+			"\"id\":\"%llu\","
+			"\"House\":\"%u\","
+			"\"AllyFlags\":\"%u\","
+			"\"Color\":\"%d\""
+			"}}", MPLAYER_NAME_MAX,
+			playerinfo.Name, playerinfo.GlyphxPlayerID, (unsigned int)playerinfo.House,
+			playerinfo.AllyFlags, playerinfo.ColorIndex);
+
+		first_player = false;
+	}
+}
+
 /*
 	credit to https://github.com/microsoft/Windows-classic-samples/blob/master/Samples/WinhttpWebsocket/cpp/WinhttpWebsocket.cpp
 */
