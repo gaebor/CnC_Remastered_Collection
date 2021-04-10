@@ -1,14 +1,12 @@
 from sys import stderr
 import json
-from io import BytesIO
 import time
 from os import mkdir
+import zipfile
 
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
-
-from PIL import Image
 
 
 class Application(tornado.web.Application):
@@ -18,7 +16,7 @@ class Application(tornado.web.Application):
 
 class MainHandler(tornado.websocket.WebSocketHandler):
     messages = []
-    record_hash = 0
+    record_name = ''
 
     @staticmethod
     def check_frames():
@@ -45,23 +43,22 @@ class MainHandler(tornado.websocket.WebSocketHandler):
 
         if text_message == "START":
             MainHandler.messages = []
-            MainHandler.record_hash = hash(time.time())
-            try:
-                mkdir(f'{MainHandler.record_hash:020}')
-            except FileExistsError:
+            MainHandler.record_name = f'{hash(time.time()):020}.zip'
+            with zipfile.ZipFile(MainHandler.record_name, 'w'):
                 pass
         elif text_message == "END":
-            with open(f'{MainHandler.record_hash:020}/messages.json', 'w') as f:
-                json.dump(MainHandler.messages, f, indent=4)
+            with zipfile.ZipFile(MainHandler.record_name, 'a') as f:
+                f.writestr('messages.json', json.dumps(MainHandler.messages, indent=4))
             print(MainHandler.check_frames(), file=stderr)
             MainHandler.messages = []
         else:
             MainHandler.messages.append(text_message)
 
         if len(image_data) > 0:
-            image = Image.open(BytesIO(image_data), formats=['BMP'])
-            with open(f'{MainHandler.record_hash:020}/{text_message["frame"]:010}.png', 'wb') as f:
-                image.convert("RGB").save(f)
+            with zipfile.ZipFile(
+                MainHandler.record_name, 'a', compression=zipfile.ZIP_DEFLATED, compresslevel=1
+            ) as f:
+                f.writestr(f'{text_message["frame"]:010}.bmp', image_data)
         else:
             print(text_message)
 
