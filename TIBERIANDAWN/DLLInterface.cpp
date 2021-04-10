@@ -716,6 +716,8 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Set_Multiplayer_Data(int scena
 		}
 
 		MPlayerCount++;
+
+		LogPlayerInfo(player_info);
 	}
 
 	/*
@@ -1896,7 +1898,7 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Get_Start_Game_Info(uint64 pla
 		return false;
 	}
 	start_location_waypoint_index = PlayerPtr->StartLocationOverride;
-	SendOnSocket("{\"Get_Start_Game_Info\":{\"player_id\":%llu,\"start_location_waypoint_index\":%d}}",
+	SendOnSocket("{\"Get_Start_Game_Info\":{\"player\":%llu,\"start_location_waypoint_index\":%d}}",
 		player_id, start_location_waypoint_index);
 	return true;
 }
@@ -2808,7 +2810,6 @@ void DLLExportClass::Force_Human_Team_Wins(uint64 quitting_player_id)
 extern "C" __declspec(dllexport) bool __cdecl CNC_Get_Game_State(GameStateRequestEnum state_type, uint64 player_id, unsigned char *buffer_in, unsigned int buffer_size)
 {
 	bool got_state = false;
-	// SendOnSocket("{\"Get_Game_State\":{\"state_type\":%d,\"player_id\":%llu}}", (int)state_type, player_id);
 
 	switch (state_type) {
 		
@@ -5803,8 +5804,6 @@ bool DLLExportClass::Get_Player_Info_State(uint64 player_id, unsigned char *buff
 
 	// Screen shake
 	player_info->ScreenShake = PlayerPtr->ScreenShakeTime;
-
-	LogPlayerInfo(*player_info);
 
 	return true;
 };

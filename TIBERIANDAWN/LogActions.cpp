@@ -4,8 +4,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-// #include <unordered_map>
-
 #include "LogActions.h"
 
 #include "FUNCTION.H"
@@ -92,26 +90,18 @@ void SendOnSocket(const char* format, ...)
 	SendOnSocketRaw((PVOID)text_buffer, strlen(text_buffer) + 1);
 }
 
-static CNCPlayerInfoStruct player_info;
-
 void LogPlayerInfo(const CNCPlayerInfoStruct& playerinfo)
 {
-	static bool first_player = true;
-	if (first_player)
-	{
-		player_info = playerinfo;
-		SendOnSocket("{\"Player\":{"
-			"\"Name\":\"%.*s\","
-			"\"id\":\"%llu\","
-			"\"House\":\"%u\","
-			"\"AllyFlags\":\"%u\","
-			"\"Color\":\"%d\""
-			"}}", MPLAYER_NAME_MAX,
-			playerinfo.Name, playerinfo.GlyphxPlayerID, (unsigned int)playerinfo.House,
-			playerinfo.AllyFlags, playerinfo.ColorIndex);
-
-		first_player = false;
-	}
+	SendOnSocket("{"
+		"\"player\":\"%llu\","
+		"\"Name\":\"%.*s\","
+		"\"House\":\"%u\","
+		"\"AllyFlags\":\"%u\","
+		"\"Color\":\"%d\""
+		"}", playerinfo.GlyphxPlayerID, 
+		MPLAYER_NAME_MAX, playerinfo.Name,
+		(unsigned int)playerinfo.House,
+		playerinfo.AllyFlags, playerinfo.ColorIndex);
 }
 
 /*
