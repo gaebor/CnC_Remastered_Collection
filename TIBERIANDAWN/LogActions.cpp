@@ -395,7 +395,6 @@ static int GradImageToMemory(unsigned char* buffer)
 	DWORD dwBytesWritten = 0;
 	DWORD dwSizeofDIB = 0;
 	HANDLE hFile = NULL;
-	DWORD dwBmpSize = 0;
 	RECT rcMemory = { 0, 0, 720, 405 };
 
 	hdcWindow = GetDC(hwnd);
@@ -450,15 +449,13 @@ static int GradImageToMemory(unsigned char* buffer)
 	bi.biWidth = bmpMemory.bmWidth;
 	bi.biHeight = bmpMemory.bmHeight;
 	bi.biPlanes = 1;
-	bi.biBitCount = 32;
+	bi.biBitCount = 24;
 	bi.biCompression = BI_RGB;
 	bi.biSizeImage = 0;
 	bi.biXPelsPerMeter = 0;
 	bi.biYPelsPerMeter = 0;
 	bi.biClrUsed = 0;
 	bi.biClrImportant = 0;
-
-	dwBmpSize = ((bmpMemory.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpMemory.bmHeight;
 
 	// Gets the "bits" from the bitmap, and copies them into a buffer 
 	// that's pointed to by lpbitmap.
@@ -469,17 +466,9 @@ static int GradImageToMemory(unsigned char* buffer)
 		CCDebugString("GetDIBits failed!\n");
 		goto done;
 	}
-	// snprintf((char*)websocket_msg_buf, 256, "capture%010d.bmp", Frame);
-	//// A file is created, this is where we will save the screen capture.
-	//hFile = CreateFileA((LPCSTR)websocket_msg_buf,
-	//	GENERIC_WRITE,
-	//	0,
-	//	NULL,
-	//	CREATE_ALWAYS,
-	//	FILE_ATTRIBUTE_NORMAL, NULL);
 
 	// Add the size of the headers to the size of the bitmap to get the total file size.
-	dwSizeofDIB = dwBmpSize + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+	dwSizeofDIB = bi.biSizeImage + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
 
 	// Offset to where the actual bitmap bits start.
 	bmfHeader.bfOffBits = (DWORD)sizeof(BITMAPFILEHEADER) + (DWORD)sizeof(BITMAPINFOHEADER);
