@@ -1,7 +1,6 @@
 from sys import stderr
 import json
 import time
-from os import mkdir
 import zipfile
 
 import tornado.ioloop
