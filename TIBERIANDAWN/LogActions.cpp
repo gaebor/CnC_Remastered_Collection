@@ -93,11 +93,11 @@ void SendOnSocket(const char* format, ...)
 void LogPlayerInfo(const CNCPlayerInfoStruct& playerinfo)
 {
 	SendOnSocket("{"
-		"\"player\":\"%llu\","
+		"\"player\":%llu,"
 		"\"Name\":\"%.*s\","
-		"\"House\":\"%u\","
-		"\"AllyFlags\":\"%u\","
-		"\"Color\":\"%d\""
+		"\"House\":%u,"
+		"\"AllyFlags\":%u,"
+		"\"Color\":%d"
 		"}", playerinfo.GlyphxPlayerID, 
 		MPLAYER_NAME_MAX, playerinfo.Name,
 		(unsigned int)playerinfo.House,
