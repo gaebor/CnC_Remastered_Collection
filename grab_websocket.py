@@ -1,7 +1,7 @@
 from sys import stderr
 import json
 import time
-import zipfile
+from os import makedirs
 
 import tornado.ioloop
 import tornado.web
@@ -42,22 +42,19 @@ class MainHandler(tornado.websocket.WebSocketHandler):
 
         if text_message == "START":
             MainHandler.messages = []
-            MainHandler.record_name = f'{hash(time.time()):020}.zip'
-            with zipfile.ZipFile(MainHandler.record_name, 'w'):
-                pass
+            MainHandler.record_name = f'{hash(time.time()):020}'
+            makedirs(MainHandler.record_name)
         elif text_message == "END":
-            with zipfile.ZipFile(MainHandler.record_name, 'a') as f:
-                f.writestr('messages.json', json.dumps(MainHandler.messages, indent=4))
+            with open(f'{MainHandler.record_name}/messages.json', 'wt') as f:
+                json.dump(MainHandler.messages, f, indent=4)
             print(MainHandler.check_frames(), file=stderr)
             MainHandler.messages = []
         else:
             MainHandler.messages.append(text_message)
 
         if len(image_data) > 0:
-            with zipfile.ZipFile(
-                MainHandler.record_name, 'a', compression=zipfile.ZIP_DEFLATED, compresslevel=1
-            ) as f:
-                f.writestr(f'{text_message["frame"]:010}.bmp', image_data)
+            with open(f'{MainHandler.record_name}/{text_message["frame"]:010}.bmp', 'wb') as f:
+                f.write(image_data)
         else:
             print(text_message)
 
