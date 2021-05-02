@@ -119,7 +119,7 @@ class Learner:
             button = batch[2].to(args.device)
 
             self.gameplay_optimizer.zero_grad()
-            predicted_cursor_movement, predicted_button, hidden_state = ai_player(
+            predicted_cursor_movement, predicted_button, hidden_state = self.gameplay_model(
                 latent_embedding[:-1],
                 cursor[:-1],
                 button[:-1],
@@ -217,6 +217,12 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    # https://stackoverflow.com/questions/54608421/how-to-fix-notimplementederror-when-trying-to-run-hydrogen-in-atom
+    import sys
+    if sys.platform == 'win32':
+        import asyncio
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     args = parse_args()
     if args.eval:
         with torch.no_grad():
