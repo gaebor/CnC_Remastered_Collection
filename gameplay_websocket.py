@@ -56,17 +56,25 @@ class Learner:
         current_time = time.time()
         if len(image_data) > 0 and 'mouse' in text_message and 'frame' in text_message:
             self.advance_background_model(image_data, text_message)
-            print(1000 * (time.time() - current_time), 'ms', file=stderr, end='\r')
+            print(
+                "{:.3f}ms/{:.3f}ms".format(
+                    1000 * (time.time() - current_time), 1000 * (current_time - self.previous_time)
+                ),
+                file=stderr,
+                end='\r',
+            )
         else:
             print(text_message)
             if text_message == "START":
                 self.restart()
             elif text_message == "END" and not self.args.eval and self.won is not None:
                 self.advance_gameplay_model()
+                self.save()
             elif 'winner' in text_message and text_message['player'] == self.player:
                 self.won = text_message['winner']
             elif self.player is None and 'player' in text_message:
                 self.player = text_message['player']
+        self.previous_time = current_time
 
     def advance_background_model(self, image_data, text_message):
         self.background_optimizer.zero_grad()
@@ -144,6 +152,7 @@ class Learner:
             torch.save(self.gameplay_model, self.args.gameplay)
 
     def restart(self):
+        self.previous_time = 0
         self.latent_embeddings = []
         self.cursors = []
         self.buttons = []
@@ -183,12 +192,7 @@ def mouse_data_to_torch(mouse_data, device='cuda'):
 def main():
     app = Application()
     app.listen(8888)
-    try:
-        tornado.ioloop.IOLoop.instance().start()
-    except KeyboardInterrupt:
-        tornado.ioloop.IOLoop.instance().stop()
-        # ?
-        learner.save()
+    tornado.ioloop.IOLoop.current().start()
 
 
 def parse_args():
@@ -220,14 +224,6 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    # https://stackoverflow.com/questions/54608421/how-to-fix-notimplementederror-when-trying-to-run-hydrogen-in-atom
-    import sys
-
-    if sys.platform == 'win32':
-        import asyncio
-
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
     args = parse_args()
     if args.eval:
         with torch.no_grad():
