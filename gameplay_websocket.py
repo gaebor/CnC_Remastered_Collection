@@ -102,6 +102,7 @@ class Learner:
             MoveMouse(*predicted_cursor, click=predicted_button)
 
     def advance_gameplay_model(self):
+        print(f'Match won: {self.won}')
         latent_embeddings = torch.cat(self.latent_embeddings, dim=0)
         cursors = torch.cat(self.cursors, dim=0)
         buttons = torch.cat(self.buttons, dim=0)
@@ -113,6 +114,7 @@ class Learner:
             shuffle=False,
         )
         hidden_state = None
+        format_string = f"iter: {{:0{len(str(len(data_iterator)))}d}}/{len(data_iterator)}"
         for iter_index, batch in enumerate(data_iterator, 1):
             latent_embedding = batch[0].to(args.device)
             cursor = batch[1].to(args.device)
@@ -133,7 +135,8 @@ class Learner:
                 error.backward()
             else:
                 (-error).backward()
-            optimizer.step()
+            self.gameplay_optimizer.step()
+            print(format_string.format(iter_index))
 
     def save(self):
         if not self.args.eval:
@@ -219,8 +222,10 @@ def parse_args():
 if __name__ == "__main__":
     # https://stackoverflow.com/questions/54608421/how-to-fix-notimplementederror-when-trying-to-run-hydrogen-in-atom
     import sys
+
     if sys.platform == 'win32':
         import asyncio
+
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     args = parse_args()
