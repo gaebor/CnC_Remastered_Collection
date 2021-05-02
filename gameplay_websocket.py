@@ -192,7 +192,10 @@ def mouse_data_to_torch(mouse_data, device='cuda'):
 def main():
     app = Application()
     app.listen(8888)
-    tornado.ioloop.IOLoop.current().start()
+    try:
+        tornado.ioloop.IOLoop.instance().start()
+    except KeyboardInterrupt:
+        tornado.ioloop.IOLoop.instance().stop()
 
 
 def parse_args():
