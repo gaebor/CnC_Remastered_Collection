@@ -12,6 +12,8 @@ from PIL import Image
 
 import model
 
+import winapi
+
 
 class Application(tornado.web.Application):
     def __init__(self):
@@ -19,6 +21,8 @@ class Application(tornado.web.Application):
 
 
 class MainHandler(tornado.websocket.WebSocketHandler):
+    hidden_state = None
+
     def on_message(self, message):
         text_message, image_data = message[:256], message[256:]
         text_message = text_message[: text_message.index(b'\0')]
@@ -34,10 +38,15 @@ class MainHandler(tornado.websocket.WebSocketHandler):
             print(e, stderr)
 
         if len(image_data) > 0 and 'mouse' in text_message:
-            if background_model is not None and gameplay_model is not None:
-                image = image_data_to_torch(image_data)
-                print(*predict_move(image, *mouse_data_to_torch(text_message['mouse'])))
+            image = image_data_to_torch(image_data)
+            predicted_cursor, predicted_button, MainHandler.hidden_state = predict_move(
+                image,
+                *mouse_data_to_torch(text_message['mouse']),
+                hidden_state=MainHandler.hidden_state
+            )
+            winapi.MoveMouse(*predicted_cursor, click=predicted_button)
         else:
+            MainHandler.hidden_state = None
             print(text_message)
 
 
@@ -51,15 +60,14 @@ def mouse_data_to_torch(mouse_data):
     return cursor, button
 
 
-def predict_move(image, cursor, button):
-    global hidden_state
+def predict_move(image, cursor, button, hidden_state=None):
     predicted_cursor, predicted_button_prob, hidden_state = gameplay_model(
         background_model.embedding(image), cursor, button, hidden_state
     )
     predicted_probs = torch.softmax(predicted_button_prob.to('cpu'), dim=1)[0]
     predicted_button = torch.max(predicted_probs, dim=0)[1].numpy()
     predicted_cursor = predicted_cursor[0].to('cpu').numpy()
-    return predicted_cursor, predicted_button
+    return predicted_cursor, predicted_button, hidden_state
 
 
 def main():
@@ -80,6 +88,4 @@ if __name__ == "__main__":
     with torch.no_grad():
         background_model = torch.load(args.background).to('cuda').eval()
         gameplay_model = torch.load(args.gameplay).to('cuda').eval()
-        hidden_state = None
-
         main()
