@@ -123,7 +123,7 @@ void InitWebSocket()
 	//
 
 	hSessionHandle = WinHttpOpen(L"CnC WebSocket",
-		WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+		WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
 		NULL,
 		NULL,
 		0);
