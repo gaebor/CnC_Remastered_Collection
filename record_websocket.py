@@ -2,10 +2,21 @@ from sys import stderr
 import json
 import time
 from os import makedirs
+from multiprocessing import Pool
+from io import BytesIO
+from random import sample
 
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
+
+from PIL import Image
+
+
+def save_image_data(image_data, filename):
+    Image.open(BytesIO(image_data), formats=['BMP']).save(
+        filename + ".jpg", format="JPEG", quality=95
+    )
 
 
 class Application(tornado.web.Application):
@@ -16,15 +27,7 @@ class Application(tornado.web.Application):
 class MainHandler(tornado.websocket.WebSocketHandler):
     messages = []
     record_name = ''
-
-    @staticmethod
-    def check_frames():
-        frames = [message['frame'] for message in MainHandler.messages if 'frame' in message]
-        expected = range(min(frames), max(frames) + 1)
-        if list(expected) == sorted(frames):
-            return "check_frames OK!"
-        else:
-            return set(expected) - set(frames)
+    async_results = []
 
     def on_message(self, message):
         text_message, image_data = message[:256], message[256:]
@@ -47,19 +50,30 @@ class MainHandler(tornado.websocket.WebSocketHandler):
         elif text_message == "END":
             with open(f'{MainHandler.record_name}/messages.json', 'wt') as f:
                 json.dump(MainHandler.messages, f, indent=4)
-            print(MainHandler.check_frames(), file=stderr)
             MainHandler.messages = []
+            while len(MainHandler.async_results) > 0:
+                MainHandler.async_results.pop().get()
+            print_team_colors()
         else:
             MainHandler.messages.append(text_message)
 
         if len(image_data) > 0:
-            with open(f'{MainHandler.record_name}/{text_message["frame"]:010}.bmp', 'wb') as f:
-                f.write(image_data)
+            MainHandler.async_results.append(
+                pool.apply_async(
+                    save_image_data,
+                    (image_data, f'{MainHandler.record_name}/{text_message["frame"]:010}'),
+                )
+            )
         else:
             print(text_message)
 
 
+def print_team_colors():
+    print("Suggested colors:", sample(['GDI', 'Blue', 'Red', 'Green', 'Orange', 'Teal'], 2))
+
+
 def main():
+    print_team_colors()
     app = Application()
     app.listen(8888)
     try:
@@ -69,4 +83,5 @@ def main():
 
 
 if __name__ == "__main__":
+    pool = Pool()
     main()
