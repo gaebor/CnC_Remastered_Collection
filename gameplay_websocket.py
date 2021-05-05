@@ -10,7 +10,7 @@ import tornado.web
 import tornado.websocket
 
 import torch
-from torchvision.transforms import ToTensor
+from torchvision.transforms.functional import to_tensor, to_pil_image
 from PIL import Image
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -18,6 +18,8 @@ import cnc_ai.model
 from cnc_ai.common import retrieve
 
 from winapi import MoveMouse
+
+from record_websocket import print_team_colors
 
 
 class Application(tornado.web.Application):
@@ -36,18 +38,14 @@ class Learner:
     def __init__(self, args):
         self.args = args
         self.background_model = torch_safe_load(
-            args.background,
-            lambda: cnc_ai.model.Predictor(
-                cnc_ai.model.ImageEmbedding(),
-                cnc_ai.model.Generator(activation=torch.nn.Sigmoid()),
-            ),
+            args.background, lambda: cnc_ai.model.Predictor()
         ).to(args.device)
         self.gameplay_model = torch_safe_load(args.gameplay, cnc_ai.model.GamePlay).to(args.device)
 
         if args.train == 0:
             self.background_model.eval()
             self.gameplay_model.eval()
-        elif args.train == 1:
+        elif not bool(self.args.train & 2):
             self.gameplay_model.eval()
 
         self.background_optimizer = torch.optim.RMSprop(
@@ -79,9 +77,11 @@ class Learner:
             print(text_message)
             if text_message == "START":
                 self.restart()
-            elif text_message == "END" and self.won is not None:
-                self.advance_gameplay_model(gradient_step=bool(self.args.train & 2))
-                self.save()
+            elif text_message == "END":
+                if self.won is not None:
+                    self.advance_gameplay_model(gradient_step=bool(self.args.train & 2))
+                    self.save()
+                print_team_colors()
             elif 'winner' in text_message and text_message['player'] == self.player:
                 self.won = text_message['winner']
             elif self.player is None and 'player' in text_message:
@@ -110,6 +110,7 @@ class Learner:
                 error.backward()
                 self.background_optimizer.step()
 
+        if make_move:
             with torch.no_grad():
                 predicted_cursor, predicted_button_prob, self.hidden_state = self.gameplay_model(
                     latent_embedding.detach(),
@@ -122,8 +123,11 @@ class Learner:
                 predicted_button = torch.max(predicted_probs, dim=0)[1].numpy()
                 predicted_cursor = predicted_cursor[0].to('cpu').numpy()
 
-                if make_move:
-                    MoveMouse(*predicted_cursor, click=predicted_button)
+                MoveMouse(*predicted_cursor, click=predicted_button)
+
+        if text_message['frame'] % self.args.sample == 0:
+            with torch.no_grad():
+                to_pil_image(self.background_model(image)[0]).show()
 
     def advance_gameplay_model(self, gradient_step=False):
         print(f'Match won: {self.won}')
@@ -165,9 +169,9 @@ class Learner:
                 print(format_string.format(iter_index))
 
     def save(self):
-        if self.args.train >= 1:
+        if bool(self.args.train & 1):
             torch.save(self.background_model, self.args.background)
-        if self.args.train >= 2:
+        if bool(self.args.train & 2):
             torch.save(self.gameplay_model, self.args.gameplay)
 
     def restart(self):
@@ -199,7 +203,7 @@ class MainHandler(tornado.websocket.WebSocketHandler):
 
 
 def image_data_to_torch(image_data, device='cuda'):
-    return ToTensor()(Image.open(BytesIO(image_data))).to(device)[None, :, :, :]
+    return to_tensor(Image.open(BytesIO(image_data))).to(device)[None, :, :, :]
 
 
 def mouse_data_to_torch(mouse_data, device='cuda'):
@@ -209,6 +213,7 @@ def mouse_data_to_torch(mouse_data, device='cuda'):
 
 
 def main():
+    print_team_colors()
     app = Application()
     app.listen(8888)
     try:
@@ -224,7 +229,7 @@ def parse_args():
     parser.add_argument(
         '--train',
         type=int,
-        default=3,
+        default=1,
         help='bitfield to control what to train. '
         '0: AI runs in the background but doesn\'t learn anything, '
         '1: train background model, '
@@ -243,11 +248,12 @@ def parse_args():
     parser.add_argument(
         '--device', default='cuda', type=torch.device, help='device to calculate on'
     )
+    parser.add_argument('--sample', default=360, type=int, help='sample the background model')
     parser.add_argument(
         '--speed_limit',
         type=float,
         default=360.0,
-        help='how many pixels can the cursor move between two successive calls of CNC_Advance_Instance',
+        help='how many pixels the cursor can move between two successive calls of CNC_Advance_Instance',
     )
     parser.add_argument(
         '--apm_limit',
