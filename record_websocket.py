@@ -29,6 +29,11 @@ class MainHandler(tornado.websocket.WebSocketHandler):
     record_name = ''
     async_results = []
 
+    @classmethod
+    def cleanup(cls):
+        while len(cls.async_results) > 0:
+            cls.async_results.pop().get()
+
     def on_message(self, message):
         text_message, image_data = message[:256], message[256:]
         text_message = text_message[: text_message.index(b'\0')]
@@ -45,14 +50,14 @@ class MainHandler(tornado.websocket.WebSocketHandler):
 
         if text_message == "START":
             MainHandler.messages = []
+            MainHandler.cleanup()
             MainHandler.record_name = f'{hash(time.time()):020}'
             makedirs(MainHandler.record_name)
         elif text_message == "END":
             with open(f'{MainHandler.record_name}/messages.json', 'wt') as f:
                 json.dump(MainHandler.messages, f, indent=4)
             MainHandler.messages = []
-            while len(MainHandler.async_results) > 0:
-                MainHandler.async_results.pop().get()
+            MainHandler.cleanup()
             print_team_colors()
         else:
             MainHandler.messages.append(text_message)
@@ -79,9 +84,10 @@ def main():
     try:
         tornado.ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
+        MainHandler.cleanup()
         tornado.ioloop.IOLoop.instance().stop()
 
 
 if __name__ == "__main__":
-    pool = Pool()
-    main()
+    with Pool() as pool:
+        main()
